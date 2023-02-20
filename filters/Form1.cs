@@ -40,15 +40,16 @@ namespace filters
             backgroundWorker1.RunWorkerAsync(filter);
         }
 
+        private void сепияToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            filters filter = new SepyFilter();
+            backgroundWorker1.RunWorkerAsync(filter);
+        }
+
         private void медианныйToolStripMenuItem_Click(object sender, EventArgs e)
         {
-/*            MedianFilter filter = new MedianFilter();
-            *//*            Bitmap resultImg = filter.process(image);
-                        pictureBox1.Image = resultImg;
-                        pictureBox1.Refresh();*//*
-            image = filter.process(image);
-            pictureBox1.Image = image;
-            pictureBox1.Refresh();*/
+            filters filter = new MedianFilter();
+            backgroundWorker1.RunWorkerAsync(filter);
         }
 
         private void размытиеToolStripMenuItem_Click(object sender, EventArgs e)
@@ -60,6 +61,18 @@ namespace filters
         private void нормальныйToolStripMenuItem_Click(object sender, EventArgs e)
         {
             filters filter = new GaussFilter();
+            backgroundWorker1.RunWorkerAsync(filter);
+        }
+
+        private void резкостьToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            filters filter = new SharpnessFilter();
+            backgroundWorker1.RunWorkerAsync(filter);
+        }
+
+        private void волныToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            filters filter = new WaveFilter();
             backgroundWorker1.RunWorkerAsync(filter);
         }
 
@@ -134,6 +147,63 @@ namespace filters
         }
     }
 
+    public class SepyFilter : filters
+    {
+        protected override Color MakeNewColor(Bitmap Img, int x, int y)
+        {
+            Color sourceColor = Img.GetPixel(x, y);
+            int k = 16;
+            char Intensity = (char)(0.36 * sourceColor.R + 0.53 * sourceColor.G + 0.11 * sourceColor.B);
+            Color resultColor = Color.FromArgb(clamp(Intensity + 2 * k, 0, 255), clamp(Intensity + (int)(0.5 * k), 0, 255), clamp(Intensity - 1 * k, 0, 255));
+            return resultColor;
+        }
+    }
+
+    public class MedianFilter : filters
+    {
+        protected override Color MakeNewColor(Bitmap Img, int x, int y)
+        {
+            int[] arrR = new int[9];
+            int[] arrG = new int[9];
+            int[] arrB = new int[9];
+            for (int i = -1; i < 2; i++)
+                for (int j = -1; j < 2; j++)
+                {
+                    arrR[(i + 1) * 3 + j + 1] = Img.GetPixel(clamp(x + i, 0, Img.Width - 1), clamp(y + j, 0, Img.Height - 1)).R;
+                    arrG[(i + 1) * 3 + j + 1] = Img.GetPixel(clamp(x + i, 0, Img.Width - 1), clamp(y + j, 0, Img.Height - 1)).G;
+                    arrB[(i + 1) * 3 + j + 1] = Img.GetPixel(clamp(x + i, 0, Img.Width - 1), clamp(y + j, 0, Img.Height - 1)).B;
+                }
+            int len = arrR.Length;
+            int t;
+            for (int i = 1; i < len; i++)
+            {
+                for (int j = 0; j < len - i; j++)
+                {
+                    if (arrR[j] > arrR[j + 1])
+                    {
+                        t = arrR[j];
+                        arrR[j] = arrR[j + 1];
+                        arrR[j + 1] = t;
+                    }
+                    if (arrG[j] > arrG[j + 1])
+                    {
+                        t = arrR[j];
+                        arrG[j] = arrG[j + 1];
+                        arrG[j + 1] = t;
+                    }
+                    if (arrB[j] > arrB[j + 1])
+                    {
+                        t = arrB[j];
+                        arrB[j] = arrB[j + 1];
+                        arrB[j + 1] = t;
+                    }
+                }
+            }
+
+            return Color.FromArgb(arrR[len / 2], arrG[len / 2], arrB[len / 2]);
+        }
+    }
+
     public class MatrixFilter : filters
     {
         protected float[,] kernel = null;
@@ -202,59 +272,26 @@ namespace filters
         }
     }
 
-   /* public class MedianFilter : filters
+    public class SharpnessFilter : MatrixFilter
     {
-        protected override Color MakeNewColor(Bitmap Img, int x, int y)
+        public SharpnessFilter()
         {
-            if (x == 0 || x + 1 == Img.Width || y == 0 || y + 1 == Img.Height)
-                return Img.GetPixel(x, y);
-            Color [] arrColor = new Color[9];
-            for (int i = -1; i < 2; i++)
-                for (int j = -1; j < 2; j++)
-                {
-                        arrColor[(i + 1) * 3 + j + 1] = Img.GetPixel(x + i, y + j);
-                }
-            int len = arrColor.Length;
-            Color t;
-            for (int i = 1; i < len; i++)
-            {
-                for (int j = 0; j < len - i; j++)
-                {
-                    if (arrColor[j].R + arrColor[j].G + arrColor[j].B > arrColor[j + 1].R + arrColor[j + 1].G + arrColor[j + 1].B)
-                    {
-                        t = arrColor[j];
-                        arrColor[j] = arrColor[j + 1];
-                        arrColor[j + 1] = t;
-                    }
-                }
-            }
-
-            return arrColor[4];
+            kernel = new float[3, 3];
+            for (int i = 0; i < 3; i++)
+                for (int j = 0; j < 3; j++)
+                    kernel[i, j] = -1;
+            kernel[1, 1] = 9;
         }
     }
 
-    public class AverFilter : filters
+    public class WaveFilter: filters
     {
         protected override Color MakeNewColor(Bitmap Img, int x, int y)
         {
-            if (x == 0 || x + 1 == Img.Width || y == 0 || y + 1 == Img.Height)
-                return Img.GetPixel(x, y);
-            Color[] arrColor = new Color[9];
-            for (int i = -1; i < 2; i++)
-                for (int j = -1; j < 2; j++)
-                {
-                    arrColor[(i + 1) * 3 + j + 1] = Img.GetPixel(x + i, y + j);
-                }
-            int len = arrColor.Length;
-            int r = 0, b = 0, g = 0;
-            for (int i = 1; i < len; i++)
-            {
-                r = r + arrColor[i].R;
-                g = g + arrColor[i].G;
-                b = b + arrColor[i].B;
-            }
-            Color resultColor = Color.FromArgb(r / 9, g / 9, b / 9);
-            return resultColor;
+            int k = x + (int)(20 * Math.Sin(2 * Math.PI * y / 60));
+            int l = y;
+            return Img.GetPixel(clamp(k, 0, Img.Width - 1), clamp(l, 0, Img.Height - 1));
         }
-    }*/
+    }
+
 }
