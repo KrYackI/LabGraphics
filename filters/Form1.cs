@@ -33,6 +33,43 @@ namespace filters
             }
 
         }
+        private void сохранитьToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            SaveFileDialog dialog = new SaveFileDialog();
+            dialog.Filter = "Image files | *.png; *.jpg; *.bmp | All files (*.*) | *.*";
+
+            if (dialog.ShowDialog() == DialogResult.OK)
+            {
+                string filename = dialog.FileName;
+                pictureBox1.Image.Save(filename);
+            }
+        }
+        private void backgroundWorker1_DoWork(object sender, DoWorkEventArgs e)
+        {
+            Bitmap newImg = ((filters)e.Argument).process(image, backgroundWorker1);
+            if (backgroundWorker1.CancellationPending != true)
+                image = newImg;
+        }
+
+        private void backgroundWorker1_ProgressChanged(object sender, ProgressChangedEventArgs e)
+        {
+            progressBar1.Value = e.ProgressPercentage;
+        }
+
+        private void backgroundWorker1_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
+        {
+            if (!e.Cancelled)
+            {
+                pictureBox1.Image = image;
+                pictureBox1.Refresh();
+            }
+            progressBar1.Value = 0;
+        }
+
+        private void button1_Click(object sender, EventArgs e)
+        {
+            backgroundWorker1.CancelAsync();
+        }
 
         private void инверсияToolStripMenuItem_Click(object sender, EventArgs e)
         {
@@ -75,41 +112,23 @@ namespace filters
             filters filter = new WaveFilter();
             backgroundWorker1.RunWorkerAsync(filter);
         }
-
-        private void backgroundWorker1_DoWork(object sender, DoWorkEventArgs e)
+        private void идеальныйОтражательToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            Bitmap newImg = ((filters)e.Argument).process(image, backgroundWorker1);
-            if (backgroundWorker1.CancellationPending != true)
-                image = newImg;
+            filters filter = new ReflectorFilter();
+            backgroundWorker1.RunWorkerAsync(filter);
         }
 
-        private void backgroundWorker1_ProgressChanged(object sender, ProgressChangedEventArgs e)
+        private void растяжениеToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            progressBar1.Value = e.ProgressPercentage;
+            filters filter = new LinStretchFilter();
+            backgroundWorker1.RunWorkerAsync(filter);
         }
-
-        private void backgroundWorker1_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
-        {
-            if (!e.Cancelled)
-            {
-                pictureBox1.Image = image;
-                pictureBox1.Refresh();
-            }
-            progressBar1.Value = 0;
-        }
-
-        private void button1_Click(object sender, EventArgs e)
-        {
-            backgroundWorker1.CancelAsync();
-        }
-
     }
 
     public abstract class filters
     {
 
         protected abstract Color MakeNewColor(Bitmap Img, int x, int y);
-
         public int clamp(int val, int min, int max)
         {
             if (val < min)
